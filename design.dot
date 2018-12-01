@@ -23,10 +23,16 @@ digraph G {
   // Passengers can also push back each other.
   // This is a form of sacrifice.
   Passenger -> Passenger [label=" push back "]
+  Passenger -> Passenger [label=" move "]
 
   // With sunlight, zombies can see passengers.
   Sun -> Zombie [label=" bestows vision "]
 
   // Without sunlight, zombies can't see passengers.
   Sun -> Zombie [label=" blinds "]
+
+  // Win: make it through 5 levels.
+  // Lose: everyone dies.
+
+  // Controls: start / stop time.
 }
