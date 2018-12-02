@@ -1,7 +1,4 @@
-data Foo
-  = Foo
+data foo
+  = foo
     { bar :: String
     }
-
-data Vec2 = Vec2 Float Float
-vec2 :: a -> b -> Vec2
