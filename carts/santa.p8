@@ -92,6 +92,9 @@ function game_update(msg, g)
   for i=1,#g.player.snowballs do
     g.player.snowballs[i] = snowball_update(g.player.snowballs[i])
   end
+  for i=1,#g.player.explosions do
+    g.player.explosions[i] = explosion_update(g.player.explosions[i])
+  end
   return g
 end
 
@@ -104,6 +107,9 @@ function game_draw(g)
   player_draw(g.player)
   for i=1,#g.player.snowballs do
     snowball_draw(g.player.snowballs[i])
+  end
+  for i=1,#g.player.explosions do
+    explosion_draw(g.player.explosions[i])
   end
 end
 
@@ -161,6 +167,7 @@ function player(x, y, w, h)
     cursor_height = 4,
     ammo = 10,
     snowballs = {},
+    explosions = {},
   }
 end
 
@@ -202,7 +209,7 @@ function player_fire_snowball(p)
   v = vec2_norm(v)
   local offset_x = 3
   local offset_y = 6
-  add(p.snowballs, snowball(p.pos.x+offset_x, p.pos.y+offset_y, v.x, v.y))
+  add(p.snowballs, snowball(p.pos.x+offset_x, p.pos.y+offset_y, v.x, v.y, p))
 end
 
 -- player_draw :: player -> io ()
@@ -228,27 +235,81 @@ end
 -- snowball entity.
 --
 
-function snowball(px, py, vx, vy)
+function snowball(px, py, vx, vy, p)
   return {
     pos = vec2(px, py),
     vel = vec2(vx, vy),
     radius = 2,
+    player = p,
+    exploded = false,
   }
 end
 
 function snowball_update(s)
+  if s.exploded then return end
+
   s.pos.x += s.vel.x
   s.pos.y += s.vel.y
+
+  -- check if collides with floor tile
+  -- if it collides, instantiate an explosion
+
+  -- screen space to map space
+  local cell_x = s.pos.x/8
+  local cell_y = s.pos.y/8
+  local tile   = mget(cell_x, cell_y)
+
+  -- if collision,
+  if fget(tile, 0) then
+    -- instantiate an explosion
+    add(s.player.explosions, explosion(s.pos.x, s.pos.y))
+    s.exploded = true
+  end
+
   return s
 end
 
 function snowball_draw(s)
+  if s.exploded then return end
+
   circfill(
     s.pos.x-s.radius/2,
     s.pos.y-s.radius/2,
     s.radius,
     7
   )
+end
+
+--
+-- explosion entity.
+--
+
+function explosion(x, y)
+  return {
+    pos = vec2(x, y),
+    t = 0,
+    lifetime = 10,
+    radius = 5,
+  }
+end
+
+function explosion_update(e)
+  e.t += 1
+  return e
+end
+
+function explosion_draw(e)
+  if e.t <= e.lifetime then
+    if e.t <= e.lifetime/5 then
+      circfill(e.pos.x, e.pos.y, e.radius, 8)
+    elseif e.t <= 2*e.lifetime/5 then
+      circfill(e.pos.x, e.pos.y, e.radius, 10)
+    elseif e.t <= 3*e.lifetime/5 then
+      circfill(e.pos.x, e.pos.y, e.radius, 6)
+    else
+      circfill(e.pos.x, e.pos.y, e.radius, 7)
+    end
+  end
 end
 
 --
