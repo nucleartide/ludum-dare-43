@@ -197,6 +197,10 @@ function player_update(horizdir, vertdir, p)
   -- add ceiling collisions
   collide_ceil(p)
 
+  -- add wall collisions
+  collide_wall(p)
+  collide_wall_left(p)
+
   -- apply friction
   if p.vel.y == 0 then
     -- ground friction
@@ -281,7 +285,7 @@ function snowball_update(s)
   local tile   = mget(cell_x, cell_y)
 
   -- if collision,
-  if fget(tile, 0) then
+  if fget(tile, 0) or fget(tile, 1) or fget(tile, 2) or fget(tile, 3) then
     -- instantiate an explosion
     add(s.player.explosions, explosion(s.pos.x, s.pos.y, s.player))
     s.exploded = true
@@ -421,9 +425,11 @@ function collide_ceil(entity)
       (entity.pos.y-1) / 8
     )
 
+    local cx, cy = player_center(entity)
+
     -- screen space to map space.
     local tile = mget(
-      (entity.pos.x+i) / 8,
+      (cx+i) / 8,
       cell_y
     )
 
@@ -432,6 +438,86 @@ function collide_ceil(entity)
       entity.vel.y = 0
       entity.pos.y = (
           cell_y * 8 -- map space to screen space
+        + 8
+      )
+
+      return true
+    end
+  end
+
+  return false
+end
+
+-- requires:
+-- - .pos.x
+-- - .pos.y
+-- - .vel.x
+-- - .width
+-- - .height
+function collide_wall(entity)
+  if entity.vel.x <= 0 then
+    return false
+  end
+
+  local step = entity.height / 3
+  for i=-step,step,step do
+    -- check right cell first
+    local cell_x = flr(
+      (entity.pos.x+entity.width) / 8
+    )
+
+    -- screen space to map space.
+    local cx, cy = player_center(entity)
+    local tile = mget(
+      cell_x,
+      (cy+i)/8
+    )
+
+    -- if tile is a side tile,
+    if fget(tile, 2) then
+      entity.vel.x = 0
+      entity.pos.x = (
+          cell_x * 8 -- map space to screen space
+        - entity.width
+      )
+
+      return true
+    end
+  end
+
+  return false
+end
+
+-- requires:
+-- - .pos.x
+-- - .pos.y
+-- - .vel.x
+-- - .width
+-- - .height
+function collide_wall_left(entity)
+  if entity.vel.x >= 0 then
+    return false
+  end
+
+  local step = entity.height / 3
+  for i=-step,step,step do
+    -- check left cell first
+    local cell_x = flr(
+      (entity.pos.x-1) / 8
+    )
+
+    -- screen space to map space.
+    local cx, cy = player_center(entity)
+    local tile = mget(
+      cell_x,
+      (cy+i)/8
+    )
+
+    -- if tile is a side tile,
+    if fget(tile, 1) then
+      entity.vel.x = 0
+      entity.pos.x = (
+          cell_x * 8 -- map space to screen space
         + 8
       )
 
