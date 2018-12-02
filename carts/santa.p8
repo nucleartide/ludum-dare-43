@@ -89,6 +89,9 @@ function game_update(msg, g)
   local horiz, vert = btntodirection()
   g.player = player_update(horiz, vert, g.player)
   g.cam = cam_update(g.cam)
+  for i=1,#g.player.snowballs do
+    g.player.snowballs[i] = snowball_update(g.player.snowballs[i])
+  end
   return g
 end
 
@@ -99,6 +102,9 @@ function game_draw(g)
   camera(cam_pos(g.cam))
   map(0, 0, 0, 0, 128, 128)
   player_draw(g.player)
+  for i=1,#g.player.snowballs do
+    snowball_draw(g.player.snowballs[i])
+  end
 end
 
 --
@@ -153,6 +159,8 @@ function player(x, y, w, h)
     height = h,
     cursor_width = 4,
     cursor_height = 4,
+    ammo = 10,
+    snowballs = {},
   }
 end
 
@@ -181,7 +189,20 @@ function player_update(horizdir, vertdir, p)
   -- move position
   p.pos.y += p.vel.y
 
+  -- z button, then fire snowball
+  if btnp(4) then
+    player_fire_snowball(p)
+  end
+
   return p
+end
+
+function player_fire_snowball(p)
+  local v = vec2(p.cursor_pos.x-p.pos.x, p.cursor_pos.y-p.pos.y)
+  v = vec2_norm(v)
+  local offset_x = 3
+  local offset_y = 6
+  add(p.snowballs, snowball(p.pos.x+offset_x, p.pos.y+offset_y, v.x, v.y))
 end
 
 -- player_draw :: player -> io ()
@@ -199,6 +220,33 @@ function player_draw(p)
     p.cursor_pos.y,
     p.cursor_pos.x + p.cursor_width  - 1,
     p.cursor_pos.y + p.cursor_height - 1,
+    7
+  )
+end
+
+--
+-- snowball entity.
+--
+
+function snowball(px, py, vx, vy)
+  return {
+    pos = vec2(px, py),
+    vel = vec2(vx, vy),
+    radius = 2,
+  }
+end
+
+function snowball_update(s)
+  s.pos.x += s.vel.x
+  s.pos.y += s.vel.y
+  return s
+end
+
+function snowball_draw(s)
+  circfill(
+    s.pos.x-s.radius/2,
+    s.pos.y-s.radius/2,
+    s.radius,
     7
   )
 end
