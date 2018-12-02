@@ -168,6 +168,7 @@ function player(x, y, w, h)
     ammo = 10,
     snowballs = {},
     explosions = {},
+    radius = 6,
   }
 end
 
@@ -193,7 +194,17 @@ function player_update(horizdir, vertdir, p)
   -- add floor collisions
   collide_floor(p)
 
+  -- apply friction
+  if p.vel.y == 0 then
+    -- ground friction
+    p.vel.x = lerp(p.vel.x, 0, 0.4)
+  else
+    -- air friction
+    --p.vel.x = lerp(p.vel.x, 0, 0.95)
+  end
+
   -- move position
+  p.pos.x += p.vel.x
   p.pos.y += p.vel.y
 
   -- z button, then fire snowball
@@ -210,6 +221,10 @@ function player_fire_snowball(p)
   local offset_x = 3
   local offset_y = 6
   add(p.snowballs, snowball(p.pos.x+offset_x, p.pos.y+offset_y, v.x, v.y, p))
+end
+
+function player_center(p)
+  return p.pos.x+7, p.pos.y+9
 end
 
 -- player_draw :: player -> io ()
@@ -229,6 +244,9 @@ function player_draw(p)
     p.cursor_pos.y + p.cursor_height - 1,
     7
   )
+
+  local cx, cy = player_center(p)
+  pset(cx, cy, 15)
 end
 
 --
@@ -246,7 +264,7 @@ function snowball(px, py, vx, vy, p)
 end
 
 function snowball_update(s)
-  if s.exploded then return end
+  if s.exploded then return s end
 
   s.pos.x += s.vel.x
   s.pos.y += s.vel.y
@@ -262,7 +280,7 @@ function snowball_update(s)
   -- if collision,
   if fget(tile, 0) then
     -- instantiate an explosion
-    add(s.player.explosions, explosion(s.pos.x, s.pos.y))
+    add(s.player.explosions, explosion(s.pos.x, s.pos.y, s.player))
     s.exploded = true
   end
 
@@ -284,17 +302,44 @@ end
 -- explosion entity.
 --
 
-function explosion(x, y)
+function explosion(x, y, p)
   return {
     pos = vec2(x, y),
     t = 0,
     lifetime = 10,
     radius = 5,
+    player = p,
+    applied = false,
   }
 end
 
 function explosion_update(e)
   e.t += 1
+  local cx, cy = player_center(e.player)
+
+  if e.t <= e.lifetime then
+    -- then check for collision with player
+    local dx = abs(e.pos.x - cx)
+    local dy = abs(e.pos.y - cy)
+    local collides = false
+    local combined_radius = e.radius + e.player.radius
+
+    -- ensure no overflow
+    if dx < 1.2*combined_radius and dy < 1.2*combined_radius then
+      local dist = vec2_mag(vec2(dx, dy))
+      if dist < combined_radius+5 then collides = true end
+    end
+
+    if collides and (not applied) then
+      -- add velocity to player
+      local v = vec2(cx-e.pos.x, cy-e.pos.y)
+      v = vec2_norm(v)
+      e.player.vel.x += v.x
+      e.player.vel.y += v.y
+      e.applied = true
+    end
+  end
+
   return e
 end
 
@@ -435,6 +480,14 @@ end
 -- the camera (as an entity) to be centered in screen space.
 function cam_pos(c)
   return c.pos.x-64, c.pos.y-64
+end
+
+--
+-- lerp util.
+--
+
+function lerp(a, b, t)
+  return (1-t)*a + t*b
 end
 __gfx__
 00000000777777777777777777777777777777777777777777777777777777770000000000000000000000000000000000000000000000000000000000000000
