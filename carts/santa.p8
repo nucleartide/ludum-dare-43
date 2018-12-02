@@ -284,6 +284,7 @@ function cursor_entity(cam)
     width = 4,
     height = 4,
     cam = cam,
+    t = 0,
   }
 end
 
@@ -293,6 +294,9 @@ function cursor_world_space(c)
 end
 
 function cursor_entity_update(c)
+  c.t += 1
+  c.t = c.t % 60
+
   c.pos.x = stat(32)
   c.pos.y = stat(33)
 
@@ -397,8 +401,8 @@ function explosion_update(e)
       -- add velocity to player
       local v = vec2(cx-e.pos.x, cy-e.pos.y)
       v = vec2_norm(v)
-      e.player.vel.x += v.x*0.4
-      e.player.vel.y += v.y*0.4
+      e.player.vel.x += v.x*0.7
+      e.player.vel.y += v.y*0.7
       e.applied = true
     end
   end
