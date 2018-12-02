@@ -76,8 +76,10 @@ function btntodirection()
 end
 
 function game()
+  local p = player(64, 64, 13, 16)
   return {
-    player = player(64, 64, 13, 16),
+    player = p,
+    cam = cam(p.cursor_pos),
   }
 end
 
@@ -86,6 +88,7 @@ end
 function game_update(msg, g)
   local horiz, vert = btntodirection()
   g.player = player_update(horiz, vert, g.player)
+  g.cam = cam_update(g.cam)
   return g
 end
 
@@ -93,6 +96,7 @@ end
 -- λ game_draw = undefined
 function game_draw(g)
   cls(1)
+  camera(cam_pos(g.cam))
   map(0, 0, 0, 0, 128, 128)
   player_draw(g.player)
 end
@@ -240,6 +244,88 @@ function collide_floor(entity)
   end
 
   return false
+end
+
+--
+-- cam entity.
+--
+
+function cam(target_pos)
+  return {
+    -- target to follow
+    -- assumes target has .cursor_pos
+    target = target_pos,
+
+    -- camera position
+    pos = vec2(target_pos.x, target_pos.y),
+
+    -- how far from (64, 64) before camera starts moving
+    pull_threshold = 16,
+
+    -- edges of level
+    pos_min = vec2(64, 64),
+    pos_max = vec2(320, 64),
+  }
+end
+
+function cam_update(c)
+
+  --
+  -- Follow target if target exceeds pull range.
+  --
+
+  if pull_max_x(c) < c.target.x then
+    -- Move at most 4 pixels right, per frame.
+    c.pos.x += min(c.target.x-pull_max_x(c), 4)
+  end
+
+  if c.target.x < pull_min_x(c) then
+    -- Move at most 4 pixels left, per frame.
+    c.pos.x += max(c.target.x-pull_min_x(c), -4)
+  end
+
+  if pull_max_y(c) < c.target.y then
+    -- Move at most 4 pixels down, per frame.
+    c.pos.y += min(c.target.y-pull_max_y(c), 4)
+  end
+
+  if c.target.y < pull_min_y(c) then
+    -- Move at most 4 pixels up, per frame.
+    c.pos.y += max(c.target.y-pull_min_y(c), -4)
+  end
+
+  --
+  -- enforce min and max positions.
+  --
+
+  c.pos.x = min(max(c.pos_min.x, c.pos.x), c.pos_max.x)
+  c.pos.y = min(max(c.pos_min.y, c.pos.y), c.pos_max.y)
+
+  -- remember to return!!
+  return c
+end
+
+function pull_max_x(c)
+  return c.pos.x + c.pull_threshold
+end
+
+function pull_min_x(c)
+  return c.pos.x - c.pull_threshold
+end
+
+function pull_max_y(c)
+  return c.pos.y + c.pull_threshold
+end
+
+function pull_min_y(c)
+  return c.pos.y - c.pull_threshold
+end
+
+-- camera position that is fed to `camera()`.
+-- note that we subtract (64, 64) because we want
+-- the camera (as an entity) to be centered in screen space.
+function cam_pos(c)
+  return c.pos.x-64, c.pos.y-64
 end
 __gfx__
 00000000777777777777777777777777777777777777777777777777777777770000000000000000000000000000000000000000000000000000000000000000
