@@ -194,7 +194,7 @@ function player(x, y, w, h)
     height = h,
     cursor_width = 4,
     cursor_height = 4,
-    ammo = 10,
+    ammo = 100,
     snowballs = {},
     explosions = {},
     radius = 6,
@@ -240,7 +240,7 @@ function player_update(horizdir, vertdir, p)
 
   -- z button, then fire snowball
   --if btnp(4) then
-  if stat(34) == 1 then
+  if stat(34) == 1 and p.ammo > 0 then
     player_fire_snowball(p)
   end
 
@@ -254,6 +254,7 @@ function player_fire_snowball(p)
   local offset_x = 3
   local offset_y = 6
   add(p.snowballs, snowball(p.pos.x+offset_x, p.pos.y+offset_y, v.x, v.y, p))
+  p.ammo -= 1
 end
 
 function player_center(p)
@@ -262,8 +263,50 @@ end
 
 -- player_draw :: player -> io ()
 function player_draw(p)
+  -- 17 - neutral
+  -- 19 - neutral,    facing left
+  -- 28 - looking up, facing left
+  -- 30 - looking up, facing right
+  -- 64 - looking down, facing left
+  -- 66 - looking down, facing right
+
+  local sp = 17
+  local cx, cy = cursor_world_space(p.cursor_entity)
+
+  local is_facing_left = false
+  if cx < p.pos.x then
+    is_facing_left = true
+  end
+
+  local vertical_dir -- 0 for up, 1 for neutral, 2 for down
+  if cy < p.pos.y-15 then
+    vertical_dir = 0
+  elseif cy > p.pos.y+15 then
+    vertical_dir = 2
+  else
+    vertical_dir = 1
+  end
+
+  if is_facing_left then
+    if vertical_dir == 0 then
+      sp = 28
+    elseif vertical_dir == 1 then
+      sp = 19
+    else
+      sp = 64
+    end
+  else
+    if vertical_dir == 0 then
+      sp = 30
+    elseif vertical_dir == 1 then
+      sp = 17
+    else
+      sp = 66
+    end
+  end
+
   spr(
-    17,
+    sp,
     p.pos.x,
     p.pos.y,
     2,
