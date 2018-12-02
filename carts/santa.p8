@@ -16,6 +16,9 @@ jetpack
 camera shake
 ]]
 
+-- enable mouse coords.
+poke(0x5f2d, 1)
+
 --
 -- game loop.
 --
@@ -89,9 +92,14 @@ end
 
 function game()
   local p = player(64, 64, 13, 16)
+  local c = cam(p.pos)
+  local cur = cursor_entity(c)
+  p.cursor_entity = cur
+
   return {
     player = p,
-    cam = cam(p.pos, p.cursor_pos),
+    cam = c,
+    cursor_entity = cur,
   }
 end
 
@@ -99,6 +107,7 @@ end
 -- λ game_update = undefined
 function game_update(msg, g)
   local horiz, vert = btntodirection()
+  g.cursor_entity = cursor_entity_update(g.cursor_entity)
   g.player = player_update(horiz, vert, g.player)
   g.cam = cam_update(g.cam)
   for i=1,#g.player.snowballs do
@@ -116,6 +125,7 @@ function game_draw(g)
   palt(0, false)
   palt(1, true)
   cls(1)
+
   camera(cam_pos(g.cam))
   map(0, 0, 0, 0, 128, 128)
   player_draw(g.player)
@@ -125,6 +135,10 @@ function game_draw(g)
   for i=1,#g.player.explosions do
     explosion_draw(g.player.explosions[i])
   end
+
+  camera()
+  cursor_entity_draw(g.cursor_entity)
+
   --camera()
   --print('ho ho ho! time to send gifts!', 4, 110, 7)
 end
@@ -176,7 +190,6 @@ function player(x, y, w, h)
     pos = vec2(x, y), -- center of player (4,4)
     vel = vec2(0, 0),
     max_vel = vec2(0, 2),
-    cursor_pos = vec2(x, y),
     width = w,
     height = h,
     cursor_width = 4,
@@ -185,6 +198,7 @@ function player(x, y, w, h)
     snowballs = {},
     explosions = {},
     radius = 6,
+    cursor_entity = nil
   }
 end
 
@@ -193,13 +207,7 @@ end
 function player_update(horizdir, vertdir, p)
   assert(horizdir ~= nil)
   assert(vertdir ~= nil)
-
-  -- move cursor
-  if horizdir == horiz_dir.left  then p.cursor_pos.x -= 2 end
-  if horizdir == horiz_dir.right then p.cursor_pos.x += 2 end
-
-  if vertdir == vert_dir.up   then p.cursor_pos.y -= 2 end
-  if vertdir == vert_dir.down then p.cursor_pos.y += 2 end
+  assert(p.cursor_entity ~= nil)
 
   -- apply gravity
   local grav = 0.15
@@ -231,20 +239,17 @@ function player_update(horizdir, vertdir, p)
   p.pos.y += p.vel.y
 
   -- z button, then fire snowball
-  if btnp(4) then
+  --if btnp(4) then
+  if stat(34) == 1 then
     player_fire_snowball(p)
   end
-
-  -- restrict cursor position
-  local cx, cy = player_center(p)
-  p.cursor_pos.x = min(max(cx-30, p.cursor_pos.x), cx+30)
-  p.cursor_pos.y = min(max(cy-30, p.cursor_pos.y), cy+30)
 
   return p
 end
 
 function player_fire_snowball(p)
-  local v = vec2(p.cursor_pos.x-p.pos.x, p.cursor_pos.y-p.pos.y)
+  local cx, cy = cursor_world_space(p.cursor_entity)
+  local v = vec2(cx-p.pos.x, cy-p.pos.y)
   v = vec2_norm(v)
   local offset_x = 3
   local offset_y = 6
@@ -265,16 +270,46 @@ function player_draw(p)
     2
   )
 
-  rect(
-    p.cursor_pos.x,
-    p.cursor_pos.y,
-    p.cursor_pos.x + p.cursor_width  - 1,
-    p.cursor_pos.y + p.cursor_height - 1,
-    7
-  )
-
   local cx, cy = player_center(p)
   pset(cx, cy, 15)
+end
+
+--
+-- cursor entity.
+--
+
+function cursor_entity(cam)
+  return {
+    pos = vec2(),
+    width = 4,
+    height = 4,
+    cam = cam,
+  }
+end
+
+function cursor_world_space(c)
+  local cx, cy = cam_pos(c.cam)
+  return cx+c.pos.x, cy+c.pos.y
+end
+
+function cursor_entity_update(c)
+  c.pos.x = stat(32)
+  c.pos.y = stat(33)
+
+  c.pos.x = min(max(10, c.pos.x), 118)
+  c.pos.y = min(max(10, c.pos.y), 118)
+
+  return c
+end
+
+function cursor_entity_draw(c)
+  rect(
+    c.pos.x - c.width/2,
+    c.pos.y - c.height/2,
+    c.pos.x + c.width/2  - 1,
+    c.pos.y + c.height/2 - 1,
+    7
+  )
 end
 
 --
@@ -553,12 +588,10 @@ end
 -- cam entity.
 --
 
-function cam(target_pos, _cursor)
+function cam(target_pos)
   return {
     -- target to follow
-    -- assumes target has .cursor_pos
     target = target_pos,
-    _cursor = _cursor,
 
     -- camera position
     pos = vec2(target_pos.x, target_pos.y),
@@ -604,9 +637,6 @@ function cam_update(c)
 
   c.pos.x = min(max(c.pos_min.x, c.pos.x), c.pos_max.x)
   c.pos.y = min(max(c.pos_min.y, c.pos.y), c.pos_max.y)
-
-  -- c._cursor.x = min(max(c.pos.x-34, c._cursor.x), c.pos.x+34)
-  -- c._cursor.y = min(max(c.pos.y-34, c._cursor.y), c.pos.y+34)
 
   -- remember to return!!
   return c
@@ -676,7 +706,7 @@ __gfx__
 00000000111111111111111111111111700000000000000000000000000444404444000000004444044440007070000000000000000000000000000000000000
 00000000777777777777777777777777707000000000000000000000000000000000000000000000000000007000000000000000000000000000000000000000
 __gff__
-0001010100040200000000010101000000000000000402000000000400000000000000000004020101000004000000000008080805000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0001010100040200000000010101000000000000000402000000000400000000000000000004020000000004000000000008080805000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __map__
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
