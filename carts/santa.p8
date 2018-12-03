@@ -36,7 +36,7 @@ do
 
   function _init()
     g = game()
-    music(0)
+    --music(0)
   end
 
   function _update60()
@@ -102,6 +102,7 @@ function game()
   local c = cam(p.pos)
   local cur = cursor_entity(c)
   p.cursor_entity = cur
+  p.cam = c
 
   return {
     player = p,
@@ -226,12 +227,14 @@ function player(x, y, w, h)
     collide_wall_left = false,
 
     mouse_pressed = false,
+    cam = nil,
   }
 end
 
 -- player_update :: message -> message -> player -> player
 -- note: all vectors are expressed in screen space.
 function player_update(horizdir, vertdir, p)
+  assert(p.cam ~= nil)
   assert(horizdir ~= nil)
   assert(vertdir ~= nil)
   assert(p.cursor_entity ~= nil)
@@ -243,7 +246,11 @@ function player_update(horizdir, vertdir, p)
   p.vel.y = min(p.vel.y, p.max_vel.y)
 
   -- add floor collisions
+  local prev_collide_floor = p.collide_floor
   p.collide_floor = collide_floor(p)
+  if not prev_collide_floor and p.collide_floor then
+    cam_shake(p.cam, 8, 2)
+  end
 
   -- add ceiling collisions
   p.collide_ceil = collide_ceil(p)
@@ -265,12 +272,12 @@ function player_update(horizdir, vertdir, p)
   p.pos.x += p.vel.x
   p.pos.y += p.vel.y
 
-  if btn(0) then
-    p.pos.x -= 1
-  end
-  if btn(1) then
-    p.pos.x += 1
-  end
+--   if btn(0) then
+--     p.pos.x -= 1
+--   end
+--   if btn(1) then
+--     p.pos.x += 1
+--   end
 
   -- z button, then fire snowball
   --if btnp(4) then
@@ -709,10 +716,14 @@ function cam(target_pos)
 end
 
 function cam_shake(c, ticks, force)
+  sfx(6)
   c.shake_remaining = ticks
+  c.shake_force = force
 end
 
 function cam_update(c)
+  assert(c ~= nil)
+  c.shake_remaining = max(c.shake_remaining-1, 0)
 
   --
   -- follow target if target exceeds pull range.
@@ -769,7 +780,14 @@ end
 -- note that we subtract (64, 64) because we want
 -- the camera (as an entity) to be centered in screen space.
 function cam_pos(c)
-  return c.pos.x-64, c.pos.y-64
+  local rx, ry = 0, 0
+
+  if c.shake_remaining > 0 then
+    rx = rnd(c.shake_force) - c.shake_force/2
+    ry = rnd(c.shake_force) - c.shake_force/2
+  end
+
+  return c.pos.x-64+rx, c.pos.y-64+ry
 end
 
 --
@@ -853,6 +871,7 @@ __sfx__
 01180000300503000030053300502f0002d0002f050280002f0532f0502d000280002d050000002f0502d05000000280500000000000000000000000000000002d050000002f0532d05000000280500000000000
 01180000000002b05000000000002d050000002f0532d05000000290500000000000000000000026000000002605000000280500000000000290502b050000002d0502b000000002b05026050000002805029050
 011800002b0002b050000000000000000000000000000000000002d0002d0502b0002d0002b0502d0502b0002b0502d0502d0002b0502d05000000000002805000000280501c6001c60018600186000000000000
+000200000a6400d6400e6400e6400e6400d6400a64009640086400864009640096400b6400d6400e6400f6400f6400e6400c6400a64008640076400664007640086400b6400d6400d6400b6400a6400a6400b640
 __music__
 00 03424344
 00 04424344
