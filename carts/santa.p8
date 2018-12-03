@@ -179,7 +179,7 @@ function game_draw(g)
 
   --camera()
   --print('ho ho ho! time to send gifts!', 4, 110, 7)
-  print(g.player.score, hcenter(tostr(g.player.score)), 4)
+  --print(g.player.score, hcenter(tostr(g.player.score)), 4)
 end
 
 function hcenter(s)
