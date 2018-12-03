@@ -35,9 +35,7 @@ do
   end
 
   function _draw()
-    if g ~= nil then
-      game_draw(g)
-    end
+    game_draw(g)
   end
 end
 
@@ -138,6 +136,10 @@ function game_draw(g)
 
   camera()
   cursor_entity_draw(g.cursor_entity)
+--   print(g.player.collide_floor)
+--   print(g.player.collide_ceil)
+--   print(g.player.collide_wall)
+--   print(g.player.collide_wall_left)
 
   --camera()
   --print('ho ho ho! time to send gifts!', 4, 110, 7)
@@ -198,7 +200,12 @@ function player(x, y, w, h)
     snowballs = {},
     explosions = {},
     radius = 6,
-    cursor_entity = nil
+    cursor_entity = nil,
+
+    collide_floor = false,
+    collide_ceil = false,
+    collide_wall = false,
+    collide_wall_left = false,
   }
 end
 
@@ -216,14 +223,14 @@ function player_update(horizdir, vertdir, p)
   p.vel.y = min(p.vel.y, p.max_vel.y)
 
   -- add floor collisions
-  collide_floor(p)
+  p.collide_floor = collide_floor(p)
 
   -- add ceiling collisions
-  collide_ceil(p)
+  p.collide_ceil = collide_ceil(p)
 
   -- add wall collisions
-  collide_wall(p)
-  collide_wall_left(p)
+  p.collide_wall = collide_wall(p)
+  p.collide_wall_left = collide_wall_left(p)
 
   -- apply friction
   if p.vel.y == 0 then
@@ -237,6 +244,13 @@ function player_update(horizdir, vertdir, p)
   -- move position
   p.pos.x += p.vel.x
   p.pos.y += p.vel.y
+
+  if btn(0) then
+    p.pos.x -= 1
+  end
+  if btn(1) then
+    p.pos.x += 1
+  end
 
   -- z button, then fire snowball
   --if btnp(4) then
@@ -483,15 +497,17 @@ function collide_floor(entity)
     return false
   end
 
-  local step = entity.width / 2.5
+  local step = entity.width / 4
   for i=-step,step,step do
     local cell_y = flr(
       (entity.pos.y+entity.height) / 8
     )
 
+    local cx, cy = player_center(entity)
+
     -- screen space to map space.
     local tile = mget(
-      (entity.pos.x+i) / 8,
+      (cx+i) / 8,
       cell_y
     )
 
@@ -522,7 +538,7 @@ function collide_ceil(entity)
     return false
   end
 
-  local step = entity.width / 2.5
+  local step = entity.width / 4
   for i=-step,step,step do
     local cell_y = flr(
       (entity.pos.y-1) / 8
