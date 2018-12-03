@@ -14,6 +14,14 @@ recoil
 inhale air, slow descent
 jetpack
 camera shake
+
+- snow collectibles
+    - provides incentive
+        - replenishes snow
+        - elf entity
+        - huff and puff
+        - RESET: de-color and reset
+
 ]]
 
 -- enable mouse coords.
@@ -694,7 +702,14 @@ function cam(target_pos)
     -- edges of level
     pos_min = vec2(64, 64),
     pos_max = vec2(320, 64),
+
+    shake_remaining = 0,
+    shake_force = 0,
   }
+end
+
+function cam_shake(c, ticks, force)
+  c.shake_remaining = ticks
 end
 
 function cam_update(c)
