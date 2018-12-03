@@ -136,6 +136,8 @@ function game_draw(g)
 
   camera(cam_pos(g.cam))
   map(0, 0, 0, 0, 128, 128)
+  --spr(39, 30, 60, 2, 2, t()%2>1)
+  --spr(41, 30, 30, 2, 2, t()%2>1)
   player_draw(g.player)
   for i=1,#g.player.snowballs do
     snowball_draw(g.player.snowballs[i])
