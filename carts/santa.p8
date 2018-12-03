@@ -225,6 +225,7 @@ function player(x, y, w, h)
     collide_ceil = false,
     collide_wall = false,
     collide_wall_left = false,
+    floor_collided = false,
 
     mouse_pressed = false,
     cam = nil,
@@ -249,7 +250,10 @@ function player_update(horizdir, vertdir, p)
   local prev_collide_floor = p.collide_floor
   p.collide_floor = collide_floor(p)
   if not prev_collide_floor and p.collide_floor then
+    p.floor_collided = true
     cam_shake(p.cam, 8, 2)
+  else
+    p.floor_collided = false
   end
 
   -- add ceiling collisions
@@ -349,6 +353,18 @@ function player_draw(p)
     end
   end
 
+  local sx = (sp%16)*8
+  local sy = flr(sp/16)*8
+  local sw = 16
+  local sh = p.floor_collided and 15 or 16
+  local dx = p.pos.x
+  local dy = p.pos.y
+  local dw = 16
+  local dh = p.floor_collided and 15 or 16
+
+  sspr(sx, sy, sw, sh, dx, dy, dw, dh)
+
+  --[[
   spr(
     sp,
     p.pos.x,
@@ -356,9 +372,10 @@ function player_draw(p)
     2,
     2
   )
+  --]]
 
-  local cx, cy = player_center(p)
-  pset(cx, cy, 15)
+  --local cx, cy = player_center(p)
+  --pset(cx, cy, 15)
 end
 
 --
