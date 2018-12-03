@@ -98,7 +98,8 @@ function btntodirection()
 end
 
 function game()
-  local p = player(64, 64, 13, 16)
+  local elves = {}
+  local p = player(64, 64, 13, 16, elves)
   local c = cam(p.pos)
   local cur = cursor_entity(c)
   p.cursor_entity = cur
@@ -110,7 +111,7 @@ function game()
     cursor_entity = cur,
     t = 0,
     spawn_time = 300,
-    elves = {},
+    elves = elves,
   }
 end
 
@@ -159,6 +160,9 @@ function game_draw(g)
   end
   for i=1,#g.player.explosions do
     explosion_draw(g.player.explosions[i])
+  end
+  for i=1,#g.player.particles do
+    particle_draw(g.player.particles[i])
   end
 
   camera()
@@ -232,7 +236,7 @@ data player
     }
 λλ ]]
 
-function player(x, y, w, h)
+function player(x, y, w, h, elves)
   return {
     pos = vec2(x, y), -- center of player (4,4)
     vel = vec2(0, 0),
@@ -257,6 +261,8 @@ function player(x, y, w, h)
     cam = nil,
     score = 0,
     label = "player",
+    elves = elves,
+    particles = {},
   }
 end
 
@@ -338,6 +344,19 @@ function player_update(horizdir, vertdir, p)
     p.mouse_pressed = true
   elseif stat(34) != 1 then
     p.mouse_pressed = false
+  end
+
+  if p.floor_collided then
+  for i=1,#p.elves do
+    local elf = p.elves[i]
+    local dx = abs(elf.pos.x - p.pos.x)
+    local dy = abs(elf.pos.y - p.pos.y)
+    if dx < 10 and dy < 10 and not elf.killed then
+      --elf.killed = true
+      --local psystem = particle(elf.pos.x, elf.pos.y)
+      --add(p.particles, psystem)
+    end
+  end
   end
 
   return p
@@ -908,6 +927,7 @@ function elf(x, y)
     width = 5,
     height = 9,
     label = "elf",
+    killed = false,
   }
 end
 
@@ -936,6 +956,10 @@ function elf_update(e)
 end
 
 function elf_draw(e)
+  if e.killed then
+    return
+  end
+
   local t = time()%1
 
   local should_flip = false
@@ -954,67 +978,84 @@ function particle(x, y)
   return {
     head = {
       pos = vec2(x, y),
-      vel = vec2(rnd(2)-1, rnd(1)-2),
+      vel = vec2(rnd(2)-1, -rnd(2)-1),
+      should_flip = rnd() > 0.5
     },
 
     body = {
       pos = vec2(x, y),
-      vel = vec2(rnd(2)-1, rnd(1)-2),
+      vel = vec2(rnd(2)-1, -rnd(2)-1),
     },
 
     limbs = {
       -- arms
       {
-        pos = vec2(x,y),
-        vel = vec2(rnd(2)-1, rnd(1)-2),
+        pos = vec2(x,y-4),
+        vel = vec2(rnd(2)-1, -rnd(2)-1),
       },
       {
-        pos = vec2(x,y),
-        vel = vec2(rnd(2)-1, rnd(1)-2),
+        pos = vec2(x,y-4),
+        vel = vec2(rnd(2)-1, -rnd(2)-1),
       },
 
       -- legs
       {
-        pos = vec2(x,y),
-        vel = vec2(rnd(2)-1, rnd(1)-2),
+        pos = vec2(x,y-4),
+        vel = vec2(rnd(2)-1, -rnd(2)-1),
       },
       {
-        pos = vec2(x,y),
-        vel = vec2(rnd(2)-1, rnd(1)-2),
+        pos = vec2(x,y-4),
+        vel = vec2(rnd(2)-1, -rnd(2)-1),
       },
     },
   }
 end
 
 function particle_update(p)
-  if p.head.pos.y < 13*8 then
-    p.head.pos.x += p.head.vel.x
-    p.head.pos.y += p.head.vel.y
+  -- add gravity
+  p.head.vel.y += 0.15
+  if p.head.vel.y > 2 then
+    p.head.vel.y = 2
   end
-  if p.body.pos.y < 13*8 then
-    p.body.pos.x += p.body.vel.x
-    p.body.pos.y += p.body.vel.y
+  p.body.vel.y += 0.15
+  if p.body.vel.y > 2 then
+    p.body.vel.y = 2
   end
   for i=1,#p.limbs do
+    p.limbs[i].vel.y += 0.15
+    if p.limbs[i].vel.y > 2 then
+      p.limbs[i].vel.y = 2
+    end
+  end
+
+  --if p.head.pos.y < 13*8 then
+    p.head.pos.x += p.head.vel.x
+    p.head.pos.y += p.head.vel.y
+  --end
+  --if p.body.pos.y < 13*8 then
+    p.body.pos.x += p.body.vel.x
+    p.body.pos.y += p.body.vel.y
+  --end
+  for i=1,#p.limbs do
     local limb = p.limbs[i]
-    if p.limb.pos.y < 13*8 then
+    --if p.limb.pos.y < 13*8 then
       p.limb.pos.x += p.limb.vel.x
       p.limb.pos.y += p.limb.vel.y
-    end
+    --end
   end
   return p
 end
 
 function particle_draw(p)
-  spr(73,p.head.pos.x,p.head.pos.y)
-  rectfill(p.body.pos.x,p.body.pos.y,p.body.pos.x+2,p.body.pos.y+1,8)
+  spr(73,p.head.pos.x,p.head.pos.y,p.should_flip)
+  --rectfill(p.body.pos.x,p.body.pos.y,p.body.pos.x+2,p.body.pos.y+1,8)
   for i=1,2 do
-    local limb = p.limbs[i]
-    pset(limb.pos.x, limb.pos.y, 3)
+    --local limb = p.limbs[i]
+    --pset(limb.pos.x, limb.pos.y, 3)
   end
   for i=3,4 do
-    local limb = p.limbs[i]
-    rectfill(limb.pos.x, limb.pos.y, limb.pos.x, limb.pos.y+1, 3)
+    --local limb = p.limbs[i]
+    --rectfill(limb.pos.x, limb.pos.y, limb.pos.x, limb.pos.y+1, 3)
   end
 end
 
