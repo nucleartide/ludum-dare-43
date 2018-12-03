@@ -587,8 +587,8 @@ function explosion_update(e)
       -- add velocity to player
       local v = vec2(cx-e.pos.x, cy-e.pos.y)
       v = vec2_norm(v)
-      e.player.vel.x += v.x*2
-      e.player.vel.y += v.y*2
+      e.player.vel.x += v.x*1.5
+      e.player.vel.y += v.y*1.5
       e.applied = true
     end
   end
