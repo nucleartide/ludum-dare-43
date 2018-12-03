@@ -232,9 +232,29 @@ function player(x, y, w, h)
   }
 end
 
+function palette_swap()
+  pal(10,12)
+  pal(9, 13)
+  pal(13, 5)
+  pal(12, 6)
+  pal(7, 6)
+  pal(8, 6)
+  pal(6, 0)
+  pal(15, 6)
+end
+
 -- player_update :: message -> message -> player -> player
 -- note: all vectors are expressed in screen space.
 function player_update(horizdir, vertdir, p)
+--  if p.ammo <= 0 then
+--    stop()
+--  end
+
+-- if btn(0) then
+--   palette_swap()
+--   return p
+-- end
+
   assert(p.cam ~= nil)
   assert(horizdir ~= nil)
   assert(vertdir ~= nil)
